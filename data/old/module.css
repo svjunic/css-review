@@ -18,7 +18,7 @@ html {
 }
 
 body {
-  font-family: "Helvetica Neue", Arial, sans-serif;
+  font-family: 'Helvetica Neue', Arial, sans-serif;
   line-height: 1.6;
   color: #333333;
   background-color: #ffffff;
@@ -69,7 +69,7 @@ a:hover {
   color: #555555;
 }
 
-.nav>.item {
+.nav > .item {
   margin-left: 16px;
 }
 
@@ -89,7 +89,7 @@ a:hover {
 
 .hero__lead {
   font-size: 18px;
-  opacity: .8;
+  opacity: 0.8;
 }
 
 /* ---- ボタン ---- */
@@ -147,8 +147,8 @@ a:hover {
 }
 
 /* ---- フォーム ---- */
-input[type="text"],
-input[type="email"] {
+input[type='text'],
+input[type='email'] {
   width: 100%;
   padding: 10px 12px;
   border: 1px solid #cccccc;
@@ -203,4 +203,17 @@ input[type="email"] {
   to {
     opacity: 1;
   }
+}
+
+/* ---- 評価順の違い ---- */
+.mogeta {
+  margin-inline: auto;
+  margin-block-end: 10px;
+  margin-block-start: 0;
+}
+.mogeta2 {
+  margin: 0 auto;
+  margin-block-start: 10px;
+  margin-block-end: 10px;
+  margin-block-start: 0;
 }

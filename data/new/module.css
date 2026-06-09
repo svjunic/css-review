@@ -160,8 +160,8 @@ a:hover {
 
 /* ---- フォーム ---- */
 /* 表記揺れ: 属性セレクタのクォート除去（semanticSelectors で集約） */
-input[type=text],
-input[type=email] {
+input[type='text'],
+input[type='email'] {
   width: 100%;
   padding: 10px 12px;
   border: 1px solid #cccccc;
@@ -217,4 +217,17 @@ input[type=email] {
   to {
     opacity: 1;
   }
+}
+
+/* ---- 評価順の違い ---- */
+.mogeta {
+  margin-inline: auto;
+  margin-block-start: 0;
+  margin-block-end: 10px;
+}
+.mogeta2 {
+  margin: 0 auto;
+  margin-block-start: 0;
+  margin-block-end: 10px;
+  margin-block-start: 10px; /* 最終評価対象 */
 }
