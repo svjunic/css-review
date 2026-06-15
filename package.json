@@ -1,18 +1,42 @@
 {
-  "name": "css-diff-app",
-  "version": "1.0.0",
+  "name": "sv-css-diff",
+  "version": "0.1.0",
+  "description": "CSS structural diff tool — compares effective CSS properties between two files",
   "type": "module",
+  "bin": {
+    "css-diff": "./bin/css-diff.js"
+  },
+  "exports": {
+    ".": "./src/core/index.js"
+  },
+  "files": [
+    "bin/",
+    "src/core/"
+  ],
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "test": "vitest run"
   },
   "dependencies": {
-    "fzf": "^0.5.2",
     "postcss": "^8.4.38"
   },
   "devDependencies": {
-    "vite": "^5.2.0",
-    "vitest": "^1.5.0"
+    "fzf": "^0.5.2",
+    "vite": "^8.0.16",
+    "vitest": "^4.1.8"
+  },
+  "engines": {
+    "node": ">=18.3.0"
+  },
+  "keywords": [
+    "css",
+    "diff",
+    "cli"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/svjunic/sv-css-diff"
   }
 }
