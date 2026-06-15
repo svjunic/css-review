@@ -10,6 +10,7 @@ export default defineConfig({
   },
   test: {
     environment: 'node',
+    include: ['../tests/**/*.{test,spec}.{js,ts}'],
   },
   optimizeDeps: {
     include: ['postcss', 'fzf'],

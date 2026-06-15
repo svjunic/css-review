@@ -5,6 +5,7 @@ import { parseArgs } from 'node:util'
 import { parseCss } from '../src/core/parse.js'
 import { resolve } from '../src/core/resolve.js'
 import { diff } from '../src/core/diff.js'
+import { computeOrderRisks } from '../src/core/order-risk.js'
 
 const HELP = `Usage: css-diff <old.css> <new.css> [options]
 
@@ -16,6 +17,7 @@ Options:
   --format <text|json>                    出力フォーマット (default: text)
   --filter <changed|added|removed|unchanged|all>
                                           ステータスで絞り込み (default: changed)
+  --order-risk                            セレクタ出現順リスクを表示
   --ignore-cosmetic                       表記揺れを無視
   --semantic-selectors                    属性セレクタのクォート有無を同一視
   --no-color                              ANSI カラーを無効化
@@ -33,6 +35,7 @@ try {
     options: {
       format:               { type: 'string',  default: 'text' },
       filter:               { type: 'string',  default: 'changed' },
+      'order-risk':         { type: 'boolean', default: false },
       'ignore-cosmetic':    { type: 'boolean', default: false },
       'semantic-selectors': { type: 'boolean', default: false },
       'no-color':           { type: 'boolean', default: false },
@@ -86,6 +89,7 @@ const oldCss = readFile(oldPath)
 const newCss = readFile(newPath)
 
 let result
+let orderRisks = []
 try {
   const parseOptions = { semanticSelectors: values['semantic-selectors'] }
   result = diff(
@@ -93,6 +97,9 @@ try {
     resolve(parseCss(newCss, parseOptions)),
     { ignoreCosmetic: values['ignore-cosmetic'] },
   )
+  if (values['order-risk']) {
+    orderRisks = computeOrderRisks(oldCss, newCss, { semanticSelectors: values['semantic-selectors'] })
+  }
 } catch (err) {
   console.error(`Parse error: ${err.message}`)
   process.exit(2)
@@ -142,7 +149,9 @@ if (values.format === 'json') {
       contexts.push({ key: ctxKey, status: ctx.status, changeCount: ctx.changeCount, selectors })
     }
   }
-  console.log(JSON.stringify({ version: 1, summary, contexts }, null, 2))
+  const output = { version: 1, summary, contexts }
+  if (values['order-risk']) output.orderRisks = orderRisks
+  console.log(JSON.stringify(output, null, 2))
 } else {
   const useColor = !values['no-color'] && !!process.stdout.isTTY
   const c = {
@@ -187,6 +196,40 @@ if (values.format === 'json') {
   if (summary.removed) parts.push(`${c.red}${summary.removed} removed${c.reset}`)
   if (filter === 'all' && summary.unchanged) parts.push(`${summary.unchanged} unchanged`)
   console.log(`\nSummary: ${parts.length ? parts.join(', ') : 'no differences'}`)
+
+  if (values['order-risk'] && orderRisks.length > 0) {
+    console.log(`\nOrder Risks:`)
+    for (const { contextKey, rows } of orderRisks) {
+      const visibleRows = rows.filter(r => r.type !== 'equal')
+      if (visibleRows.length === 0) continue
+
+      const maxOld = Math.max(6, ...visibleRows.map(r => (r.oldSelector ?? '-').length))
+      const maxNew = Math.max(6, ...visibleRows.map(r => (r.newSelector ?? '-').length))
+
+      console.log(`\n${c.cyan}[${contextKey}]${c.reset}`)
+      console.log(`  ${'旧 CSS'.padEnd(maxOld)}  ${'新 CSS'.padEnd(maxNew)}  状態`)
+      console.log(`  ${'-'.repeat(maxOld)}  ${'-'.repeat(maxNew)}  ------`)
+
+      for (const row of visibleRows) {
+        const oldCol = (row.oldSelector ?? '-').padEnd(maxOld)
+        const newCol = (row.newSelector ?? '-').padEnd(maxNew)
+        if (row.type === 'moved') {
+          const spec = row.sameSpecificity ? ` ${c.dim}(詳細度が同じ)${c.reset}` : ''
+          console.log(`  ${oldCol}  ${newCol}  ${c.yellow}⚠ 順序変更${c.reset}${spec}`)
+          if (row.conflictingProps && row.conflictingProps.length > 0) {
+            for (const cp of row.conflictingProps) {
+              const imp = v => v.important ? ' !important' : ''
+              console.log(`    ${c.dim}${cp.prop}: ${cp.oldEffective.value}${imp(cp.oldEffective)} → ${cp.newEffective.value}${imp(cp.newEffective)}${c.reset}`)
+            }
+          }
+        } else if (row.type === 'deleted') {
+          console.log(`  ${oldCol}  ${'-'.padEnd(maxNew)}  ${c.red}- 削除${c.reset}`)
+        } else if (row.type === 'added') {
+          console.log(`  ${'-'.padEnd(maxOld)}  ${newCol}  ${c.green}+ 追加${c.reset}`)
+        }
+      }
+    }
+  }
 }
 
 process.exit(hasDiff ? 1 : 0)

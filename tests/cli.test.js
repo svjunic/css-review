@@ -73,4 +73,39 @@ describe('css-diff CLI', () => {
       }
     }
   })
+
+  it('--order-risk with --format json outputs orderRisks array', () => {
+    const { stdout, code } = run([OLD, NEW, '--order-risk', '--format', 'json'])
+    const parsed = JSON.parse(stdout)
+    expect(Array.isArray(parsed.orderRisks)).toBe(true)
+    expect(parsed.orderRisks.length).toBeGreaterThan(0)
+    const ctx = parsed.orderRisks[0]
+    expect(typeof ctx.contextKey).toBe('string')
+    expect(typeof ctx.hasWarning).toBe('boolean')
+    expect(Array.isArray(ctx.rows)).toBe(true)
+    const movedRow = ctx.rows.find(r => r.type === 'moved')
+    expect(movedRow).toBeDefined()
+    expect(typeof movedRow.oldSelector).toBe('string')
+    expect(typeof movedRow.newSelector).toBe('string')
+    expect(code).toBe(1)
+  })
+
+  it('--order-risk text format shows "Order Risks:" section with warnings', () => {
+    const { stdout } = run([OLD, NEW, '--order-risk', '--no-color'])
+    expect(stdout).toContain('Order Risks:')
+    expect(stdout).toContain('⚠ 順序変更')
+    expect(stdout).toContain('Summary:')
+  })
+
+  it('--order-risk on identical files shows no order risk section', () => {
+    const { stdout, code } = run([OLD, OLD, '--order-risk', '--no-color'])
+    expect(stdout).not.toContain('Order Risks:')
+    expect(code).toBe(0)
+  })
+
+  it('without --order-risk json output has no orderRisks field', () => {
+    const { stdout } = run([OLD, NEW, '--format', 'json'])
+    const parsed = JSON.parse(stdout)
+    expect('orderRisks' in parsed).toBe(false)
+  })
 })
