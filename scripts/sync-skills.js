@@ -7,7 +7,7 @@
  * スキルディレクトリに node_modules は不要。
  */
 import { buildSync } from "esbuild";
-import { mkdirSync } from "fs";
+import { mkdirSync, readFileSync } from "fs";
 import { dirname, join } from "path";
 import { fileURLToPath } from "url";
 
@@ -15,6 +15,8 @@ const ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
 const OUT = join(ROOT, ".claude/skills/css-verify/bin/css-diff.cjs");
 
 mkdirSync(dirname(OUT), { recursive: true });
+
+const bundledCss = readFileSync(join(ROOT, "src/styles.css"), "utf8");
 
 buildSync({
   entryPoints: [join(ROOT, "bin/css-diff.js")],
@@ -25,6 +27,10 @@ buildSync({
   target: "node18",
   // import.meta.url は --version フラグのパッケージ読み込みにのみ使用。
   // バンドル後は空になるが、差分検証機能には影響しない。
+  define: {
+    // src/reporters/html.js がバンドル時にこの定数でCSSをインライン化する
+    __BUNDLED_CSS__: JSON.stringify(bundledCss),
+  },
   logLevel: "error",
 });
 

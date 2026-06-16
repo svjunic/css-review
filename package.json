@@ -1,6 +1,6 @@
 {
   "name": "@svjunic/css-diff",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "CSS structural diff tool — compares effective CSS properties between two files",
   "type": "module",
   "bin": {
@@ -12,6 +12,9 @@
   "files": [
     "bin/",
     "src/core/",
+    "src/ui/render.js",
+    "src/reporters/",
+    "src/styles.css",
     "README.md",
     "README/cli.md",
     "LICENSE"

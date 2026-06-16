@@ -6,6 +6,7 @@ import { parseCss } from '../src/core/parse.js'
 import { resolve } from '../src/core/resolve.js'
 import { diff } from '../src/core/diff.js'
 import { computeOrderRisks } from '../src/core/order-risk.js'
+import { generateHtmlReport } from '../src/reporters/html.js'
 
 const HELP = `Usage: css-diff <old.css> <new.css> [options]
 
@@ -14,7 +15,7 @@ Arguments:
   new.css    比較先 CSS ファイルのパス
 
 Options:
-  --format <text|json>                    出力フォーマット (default: text)
+  --format <text|json|html>               出力フォーマット (default: text)
   --filter <changed|added|removed|unchanged|all>
                                           ステータスで絞り込み (default: changed)
   --order-risk                            セレクタ出現順リスクを表示
@@ -66,6 +67,12 @@ if (values.help) {
 if (positionals.length < 2) {
   console.error('Error: 2つのファイルパスが必要です\n')
   console.error(HELP)
+  process.exit(2)
+}
+
+const VALID_FORMATS = new Set(['text', 'json', 'html'])
+if (!VALID_FORMATS.has(values.format)) {
+  console.error('Error: --format は text | json | html のいずれかです')
   process.exit(2)
 }
 
@@ -130,6 +137,12 @@ function summarize(result) {
 const summary = summarize(result)
 const hasDiff = summary.changed > 0 || summary.added > 0 || summary.removed > 0
 const filter = values.filter
+
+if (values.format === 'html') {
+  const html = generateHtmlReport(result, values['order-risk'] ? orderRisks : null)
+  process.stdout.write(html)
+  process.exit(hasDiff ? 1 : 0)
+}
 
 if (values.format === 'json') {
   const contexts = []

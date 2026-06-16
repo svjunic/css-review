@@ -24,6 +24,9 @@ coverage/
 # Playwright MCP
 .playwright-mcp/
 
+# CSS Diff Reports
+css-verify-report/
+
 # Claude Code
 CLAUDE.local.md
 .claude/worktrees
