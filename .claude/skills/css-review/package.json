@@ -1,0 +1,6 @@
+{
+  "type": "module",
+  "dependencies": {
+    "postcss": "^8.4.38"
+  }
+}

@@ -9,7 +9,7 @@
  *   .claude/skills/css-review-npm/hooks/posttooluse.js — minified hook スクリプト
  */
 import { buildSync } from "esbuild";
-import { cpSync, mkdirSync, readFileSync, writeFileSync } from "fs";
+import { cpSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { dirname, join } from "path";
 import { fileURLToPath } from "url";
 
@@ -49,21 +49,27 @@ cpSync(join(ROOT, "src/core"), join(SKILL_DIR, "src/core"), { recursive: true, f
 cpSync(join(ROOT, "src/reporters/html.js"), join(SKILL_DIR, "src/reporters/html.js"), { force: true });
 cpSync(join(ROOT, "src/ui/render.js"), join(SKILL_DIR, "src/ui/render.js"), { force: true });
 cpSync(join(ROOT, "src/styles.css"), join(SKILL_DIR, "src/styles.css"), { force: true });
-writeFileSync(join(SKILL_DIR, "package.json"), JSON.stringify({ type: "module" }, null, 2) + "\n");
+const skillPkg = { type: "module", dependencies: { postcss: pkg.dependencies.postcss } };
+writeFileSync(join(SKILL_DIR, "package.json"), JSON.stringify(skillPkg, null, 2) + "\n");
 console.log("✓ copied ESM sources to .claude/skills/css-review/");
 
 // ── 3. css-review-npm スキルの hook スクリプト (minified) ─────────────────────
+const HOOK_SRC = join(ROOT, ".claude/skills/css-review-npm/hooks/posttooluse.src.js");
 const HOOK_OUT = join(ROOT, ".claude/skills/css-review-npm/hooks/posttooluse.js");
 
-buildSync({
-  entryPoints: [join(ROOT, ".claude/skills/css-review-npm/hooks/posttooluse.src.js")],
-  bundle: false,
-  platform: "node",
-  format: "esm",
-  minify: true,
-  outfile: HOOK_OUT,
-  target: "node18",
-  banner: { js: COPYRIGHT },
-  logLevel: "error",
-});
-console.log("✓ minified .claude/skills/css-review-npm/hooks/posttooluse.js");
+if (existsSync(HOOK_SRC)) {
+  buildSync({
+    entryPoints: [HOOK_SRC],
+    bundle: false,
+    platform: "node",
+    format: "esm",
+    minify: true,
+    outfile: HOOK_OUT,
+    target: "node18",
+    banner: { js: COPYRIGHT },
+    logLevel: "error",
+  });
+  console.log("✓ minified .claude/skills/css-review-npm/hooks/posttooluse.js");
+} else {
+  console.log("⚠ skipped css-review-npm hook (posttooluse.src.js not found)");
+}

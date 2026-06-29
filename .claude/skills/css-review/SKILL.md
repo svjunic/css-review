@@ -16,7 +16,7 @@ allowed-tools:
 - スキルディレクトリで `npm ci` を実行済みであること（初回セットアップ）
 
 ```bash
-cd <SKILL_DIR> && npm ci
+cd <SKILL_DIR> && npm install
 ```
 
 > `<SKILL_DIR>` = このスキルが読み込まれた際に表示される `Base directory for this skill:` のパス。以降の手順でも同様に使用すること。

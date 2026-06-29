@@ -30,7 +30,8 @@ css-review-report/
 # Claude Code
 CLAUDE.local.md
 .claude/worktrees
-.claude/skills
+.claude/skills/*
+!.claude/skills/css-review
 .claude/agents
 .claude/rules
 .claude/docs
