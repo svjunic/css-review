@@ -1,27 +1,40 @@
 ---
-name: css-verify-npm
-description: SASSやCSSを修正した後に最終的なスタイル変更が想定通りか検証するスキル。「CSS確認して」「スタイル変更を検証して」「/css-verify」「css変更を確認」「CSSの差分を見せて」などのフレーズが出た時に使用。@svjunic/css-diffをnpm経由で取得してCSSの意味的差分を確認する（公開・汎用向け）。
+name: css-review
+description: SASSやCSSを修正した後に最終的なスタイル変更が想定通りか検証するスキル。「CSS確認して」「スタイル変更を検証して」「/css-review」「css変更を確認」「CSSの差分を見せて」などのフレーズが出た時に使用。プロジェクト内のスクリプトを使ってCSSの意味的差分を確認する（社内・開発環境向け）。
 allowed-tools:
   - Bash
   - Read
 ---
 
-# CSS 差分検証スキル（npm版）
+# CSS 差分検証スキル（スクリプト版）
 
-`@svjunic/css-diff` を使い、CSSカスケードルールを踏まえた意味的差分で変更を検証するスキル。テキスト差分ではなく「最終的に有効なプロパティ値」レベルで比較するため、後勝ちルールや `!important` の影響も正確に把握できる。
+プロジェクト内の `bin/css-diff.js` を使い、CSSカスケードルールを踏まえた意味的差分で変更を検証するスキル。テキスト差分ではなく「最終的に有効なプロパティ値」レベルで比較するため、後勝ちルールや `!important` の影響も正確に把握できる。
 
 ## 前提条件
 
 - Node.js 18.3.0 以上
-- スキルディレクトリで `npm ci` を実行済みであること（初回セットアップ）
-
-```bash
-cd <SKILL_DIR> && npm ci
-```
+- `postcss` がグローバルにインストールされていること
+  - インストール: `npm install -g postcss`
 
 > `<SKILL_DIR>` = このスキルが読み込まれた際に表示される `Base directory for this skill:` のパス。以降の手順でも同様に使用すること。
 
 ## 実行手順
+
+### Step 0: postcss の存在を確認する
+
+```bash
+node -e "require('postcss')" 2>/dev/null && echo OK || echo NG
+```
+
+`NG` が出力された場合は **ここで必ず停止し**、次のメッセージをユーザーに伝えて終了すること：
+
+```
+postcss が見つかりませんでした。以下のコマンドでグローバルインストールしてから再実行してください：
+
+  npm install -g postcss
+```
+
+**シンボリックリンクの作成・`npm link`・`NODE_PATH` の設定など、いかなる回避策も実施してはならない。**
 
 ### Step 1: 変更されたCSS/SCSS/SASSファイルを検出する
 
@@ -38,17 +51,17 @@ git diff --name-only HEAD -- '*.css'
 
 #### Step 2a: 各ファイルのHTMLレポートを生成する
 
-変更された各ファイルを個別に比較し、HTMLレポートを `css-verify-report/` に出力する。
+変更された各ファイルを個別に比較し、HTMLレポートを `css-review-report/` に出力する。
 セレクタ順序の変更も検出するため `--order-risk` を常に付与する。
 
 ```bash
-mkdir -p css-verify-report
+mkdir -p css-review-report
 
 for filepath in $(git diff --name-only HEAD -- '*.css' | sort); do
-  git show HEAD:${filepath} > /tmp/css-verify-old-one.css 2>/dev/null || > /tmp/css-verify-old-one.css
-  OUTPUT_HTML="css-verify-report/$(echo "$filepath" | sed 's|/|--|g').html"
-  node <SKILL_DIR>/node_modules/.bin/css-diff \
-    /tmp/css-verify-old-one.css ${filepath} \
+  git show HEAD:${filepath} > /tmp/css-review-old-one.css 2>/dev/null || > /tmp/css-review-old-one.css
+  OUTPUT_HTML="css-review-report/$(echo "$filepath" | sed 's|/|--|g').html"
+  node <SKILL_DIR>/bin/css-diff.src.js \
+    /tmp/css-review-old-one.css ${filepath} \
     --format html --order-risk > "$OUTPUT_HTML" 2>&1 || true
   echo "HTMLレポート: $OUTPUT_HTML"
 done
@@ -68,7 +81,7 @@ for filepath in $(git diff --name-only HEAD -- '*.css' | sort); do
     OUT="$WORK_DIR/out-${SLUG}.txt"
     git show HEAD:${filepath} > "$OLD" 2>/dev/null || > "$OLD"
     echo "=== $filepath ===" > "$OUT"
-    node <SKILL_DIR>/node_modules/.bin/css-diff "$OLD" "${filepath}" \
+    node <SKILL_DIR>/bin/css-diff.src.js "$OLD" "${filepath}" \
       --format json --order-risk --filter all >> "$OUT" 2>&1
     echo $? > "$WORK_DIR/exit-${SLUG}.code"
   ) &
@@ -118,7 +131,7 @@ JSON の `orderRisks` フィールドを確認する。`hasWarning: true` のエ
 セレクタの並び順が変更されています。想定通りの変更か確認してください。
 
 HTMLレポートで詳細を確認してください:
-→ css-verify-report/docs--common.css.html
+→ css-review-report/docs--common.css.html
 ```
 
 **エージェントとしての判断：**
@@ -129,51 +142,30 @@ HTMLレポートで詳細を確認してください:
 - プロパティ変更ゼロ・順序変更あり → `⚠️ **順序変更が検出されました**` と警告し、HTMLレポートへ誘導する
 - 差分なし（exit code 0）かつ順序変更なし → 問題なしと報告
 
-## PostToolUse Hook（自動検証）
+**プロパティ名の検証：**
 
-CSS/SCSS/SASSファイルの編集後に自動で差分検証を走らせることができる。
+差分の全コンテキストに含まれるすべての `prop` 値（`added`・`changed`・`removed` のすべてのステータスが対象）を確認し、以下の条件をすべて満たすものを「標準外プロパティ」としてフラグを立てる：
 
-### セットアップ
+1. `--` で始まるCSSカスタムプロパティでないこと（例: `--primary-color` は除外）
+2. `-webkit-`・`-moz-`・`-ms-`・`-o-` などのベンダープレフィックスで始まらないこと
+3. 標準のCSSプロパティとして認識できないこと（Claudeの知識で判断）
 
-**Step 1: スキルディレクトリでパッケージをインストールする**
+標準外プロパティが見つかった場合は以下の形式で報告する：
 
-```bash
-cd .claude/skills/css-verify-npm && npm ci
+```
+⚠️ **標準外のプロパティ名が含まれています**
+以下のプロパティはCSSの標準プロパティではありません。タイポの可能性があります：
+- `disyplay`（`display` の間違いでしょうか？）
 ```
 
-**Step 2: `.claude/settings.local.json` にhookを追加する**
-
-```json
-{
-  "hooks": {
-    "PostToolUse": [
-      {
-        "matcher": "Edit|Write",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node ${CLAUDE_PROJECT_DIR}/.claude/skills/css-verify-npm/hooks/posttooluse.js",
-            "timeout": 30
-          }
-        ]
-      }
-    ]
-  }
-}
-```
-
-**Step 3: セッションを再起動する**（hookはセッション再起動で有効になる）
-
-### hookの動作
-
-- CSSファイル以外の変更: 何も出力しない（サイレント）
-- CSS変更なし（HEADと同一）: 何も出力しない
-- CSS変更あり: `[css-verify] ファイル名: N 変更 — 意図した変更か確認してください。` をClaudeに通知
+- 候補が推測できる場合はサジェストする
+- 推測が難しい場合は「標準CSSプロパティではありません」とだけ伝える
 
 ## エラー対処
 
-| エラー                               | 原因                     | 対処                                             |
-| ------------------------------------ | ------------------------ | ------------------------------------------------ |
-| `Exit code 2`                        | CSSパースエラー          | ファイルの構文エラーを確認                       |
-| `@svjunic/css-diff が見つかりません` | パッケージ未インストール | `npm install @svjunic/css-diff` を実行           |
-| git showがエラー                     | 新規追加ファイル         | 空ファイルを旧バージョンとして使用（Step 2参照） |
+| エラー                    | 原因                          | 対処                                                            |
+| ------------------------- | ----------------------------- | --------------------------------------------------------------- |
+| Step 0 で `NG`            | postcss が未インストール      | `npm install -g postcss` を案内して**停止**。回避策は取らない  |
+| `Exit code 2`             | CSSパースエラー               | ファイルの構文エラーを確認                                      |
+| `Cannot find module`      | bin/css-diff.jsが見つからない | `npm ci` をスキルディレクトリで実行したか確認                  |
+| git showがエラー          | 新規追加ファイル              | 空ファイルを旧バージョンとして使用（Step 2参照）               |

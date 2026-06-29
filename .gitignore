@@ -25,7 +25,7 @@ coverage/
 .playwright-mcp/
 
 # CSS Diff Reports
-css-verify-report/
+css-review-report/
 
 # Claude Code
 CLAUDE.local.md
