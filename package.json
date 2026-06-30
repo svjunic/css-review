@@ -2,13 +2,21 @@
   "name": "@svjunic/css-cascade",
   "version": "1.0.0",
   "description": "CSS diff tool that compares effective property values by applying cascade rules, not raw text",
+  "keywords": [
+    "css",
+    "diff",
+    "cli"
+  ],
+  "homepage": "https://github.com/svjunic/css-cascade#readme",
+  "bugs": {
+    "url": "https://github.com/svjunic/css-cascade/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/svjunic/css-cascade.git"
+  },
+  "license": "MIT",
   "type": "module",
-  "bin": {
-    "css-cascade": "bin/css-cascade.cjs"
-  },
-  "exports": {
-    ".": "./src/core/index.js"
-  },
   "files": [
     "bin/css-cascade.cjs",
     "src/core/",
@@ -19,6 +27,12 @@
     "README/cli.md",
     "LICENSE"
   ],
+  "exports": {
+    ".": "./src/core/index.js"
+  },
+  "bin": {
+    "css-cascade": "bin/css-cascade.cjs"
+  },
   "scripts": {
     "dev": "vite",
     "build": "vite build",
@@ -36,16 +50,6 @@
   },
   "engines": {
     "node": ">=18.3.0"
-  },
-  "keywords": [
-    "css",
-    "diff",
-    "cli"
-  ],
-  "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/svjunic/css-cascade.git"
   },
   "publishConfig": {}
 }
