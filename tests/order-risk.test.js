@@ -47,6 +47,25 @@ describe('computeSpecificity', () => {
   it(':not() 内の括弧ありセレクタ (:nth-child()) でカンマを誤分割しない', () => {
     expect(computeSpecificity(':not(:nth-child(2n of .a, .b))')).toEqual([0, 1, 0])
   })
+
+  it(':is() は引数の最大詳細度を引き継ぐ (CSS L4)', () => {
+    expect(computeSpecificity(':is(#id)')).toEqual([1, 0, 0])
+    expect(computeSpecificity(':is(.foo)')).toEqual([0, 1, 0])
+    expect(computeSpecificity(':is(.a, #id)')).toEqual([1, 0, 0])
+  })
+  it(':not(:is(#id)) は [1,0,0] を返す', () => {
+    expect(computeSpecificity(':not(:is(#id))')).toEqual([1, 0, 0])
+  })
+  it(':where() は常に詳細度 0', () => {
+    expect(computeSpecificity(':where(.foo)')).toEqual([0, 0, 0])
+    expect(computeSpecificity(':where(#id)')).toEqual([0, 0, 0])
+  })
+  it(':not(:is(:where(.a,.b))) は二重ネストで [0,0,0] を返す', () => {
+    expect(computeSpecificity(':not(:is(:where(.a,.b)))')).toEqual([0, 0, 0])
+  })
+  it(':is(.a:not(:nth-child(2))) は二重ネストで [0,2,0] を返す', () => {
+    expect(computeSpecificity(':is(.a:not(:nth-child(2)))')).toEqual([0, 2, 0])
+  })
 })
 
 describe('sameSpecificity', () => {

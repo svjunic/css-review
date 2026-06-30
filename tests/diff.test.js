@@ -192,6 +192,20 @@ describe('diff: ignoreCosmetic — 表記揺れを無視した比較', () => {
     expect(getPropDiff(result, 'base', '.a', 'margin')?.status).toBe('unchanged')
   })
 
+  it('calc 内で * の後に来る先頭ゼロ省略 (calc(1 * .5em)) は unchanged になる', () => {
+    const old = `.a { margin: calc(1 * 0.5em); }`
+    const next = `.a { margin: calc(1 * .5em); }`
+    const result = diffCss(old, next, { ignoreCosmetic: true })
+    expect(getPropDiff(result, 'base', '.a', 'margin')?.status).toBe('unchanged')
+  })
+
+  it('calc 内で * の後に来る負の先頭ゼロ省略 (calc(1 * -.5em)) は unchanged になる', () => {
+    const old = `.a { margin: calc(1 * -0.5em); }`
+    const next = `.a { margin: calc(1 * -.5em); }`
+    const result = diffCss(old, next, { ignoreCosmetic: true })
+    expect(getPropDiff(result, 'base', '.a', 'margin')?.status).toBe('unchanged')
+  })
+
   it('16進カラーの大文字小文字・短縮形は unchanged になる', () => {
     const old = `.a { color: #FFF; }`
     const next = `.a { color: #ffffff; }`
