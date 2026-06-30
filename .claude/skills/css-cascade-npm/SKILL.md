@@ -150,47 +150,6 @@ HTMLレポートで詳細を確認してください:
 - 候補が推測できる場合はサジェストする
 - 推測が難しい場合は「標準CSSプロパティではありません」とだけ伝える
 
-## PostToolUse Hook（自動検証）
-
-CSS/SCSS/SASSファイルの編集後に自動で差分検証を走らせることができる。
-
-### セットアップ
-
-**Step 1: スキルディレクトリでパッケージをインストールする**
-
-```bash
-cd .claude/skills/css-cascade-npm && npm ci
-```
-
-**Step 2: `.claude/settings.local.json` にhookを追加する**
-
-```json
-{
-  "hooks": {
-    "PostToolUse": [
-      {
-        "matcher": "Edit|Write",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node ${CLAUDE_PROJECT_DIR}/.claude/skills/css-cascade-npm/hooks/posttooluse.js",
-            "timeout": 30
-          }
-        ]
-      }
-    ]
-  }
-}
-```
-
-**Step 3: セッションを再起動する**（hookはセッション再起動で有効になる）
-
-### hookの動作
-
-- CSSファイル以外の変更: 何も出力しない（サイレント）
-- CSS変更なし（HEADと同一）: 何も出力しない
-- CSS変更あり: `[css-cascade] ファイル名: N 変更 — 意図した変更か確認してください。` をClaudeに通知
-
 ## エラー対処
 
 | エラー                               | 原因                     | 対処                                             |
