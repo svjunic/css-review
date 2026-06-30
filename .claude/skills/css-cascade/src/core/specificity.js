@@ -60,8 +60,8 @@ export function computeSpecificity(selector) {
         i++
       }
       if (depth !== 0) {
-        kept += s.slice(pos, m.index)  // 不正なpseudo以前のテキストは保持
-        pos = s.length                  // 不正なpseudoとそれ以降は破棄
+        // 括弧未閉の不正疑似クラス: kept/pos を更新せずそのまま break し、
+        // s.slice(pos) に残ったテキストをフォールバック正規表現に委ねる
         break
       }
       kept += s.slice(pos, m.index)
@@ -79,6 +79,41 @@ export function computeSpecificity(selector) {
       }
     }
     s = kept + s.slice(pos)
+  }
+
+  // :nth-child(An+B of S)・:nth-last-child(An+B of S) の "of S" 部分の詳細度を反映
+  // 括弧の深さを手動追跡し、of S 内の関数形擬似クラス (:lang(fr) 等) も正しく処理する
+  {
+    const NTH_RE = /:nth-(?:child|last-child)\s*\(/gi
+    let kept2 = ''
+    let pos2 = 0
+    let m2
+    while ((m2 = NTH_RE.exec(s)) !== null) {
+      const innerStart = m2.index + m2[0].length
+      let depth = 1, i = innerStart
+      while (i < s.length && depth > 0) {
+        if (s[i] === '(') depth++
+        else if (s[i] === ')') depth--
+        i++
+      }
+      kept2 += s.slice(pos2, m2.index)
+      if (depth === 0) {
+        const arg = s.slice(innerStart, i - 1)
+        const ofIdx = arg.search(/\bof\b/i)
+        if (ofIdx !== -1) {
+          const selectorList = arg.slice(ofIdx + 2).trim()
+          const specs = splitTopLevelCommas(selectorList).map(sel => computeSpecificity(sel))
+          const maxSpec = specs.reduce((max, spec) => isHigherSpec(spec, max) ? spec : max, [0, 0, 0])
+          a += maxSpec[0]; b += maxSpec[1]; c += maxSpec[2]
+        }
+        pos2 = i
+      } else {
+        pos2 = s.length
+      }
+      NTH_RE.lastIndex = pos2
+      b++
+    }
+    s = kept2 + s.slice(pos2)
   }
 
   // 擬似クラス :xxx を除去してカウント（関数形式も含む）
