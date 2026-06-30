@@ -140,12 +140,13 @@ function summarize(result) {
 
 const summary = summarize(result)
 const hasDiff = summary.changed > 0 || summary.added > 0 || summary.removed > 0
+const hasOrderWarning = values['order-risk'] && orderRisks.some(r => r.hasWarning)
 const filter = values.filter
 
 if (values.format === 'html') {
   const html = generateHtmlReport(result, values['order-risk'] ? orderRisks : null)
   process.stdout.write(html)
-  process.exit(hasDiff ? 1 : 0)
+  process.exit((hasDiff || hasOrderWarning) ? 1 : 0)
 }
 
 if (values.format === 'json') {
@@ -249,4 +250,4 @@ if (values.format === 'json') {
   }
 }
 
-process.exit(hasDiff ? 1 : 0)
+process.exit((hasDiff || hasOrderWarning) ? 1 : 0)
