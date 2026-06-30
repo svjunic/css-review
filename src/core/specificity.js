@@ -25,9 +25,14 @@ export function computeSpecificity(selector) {
   s = s.replace(/\[[^\]]*\]/g, () => { b++; return '' })
 
   // :not() は引数の詳細度を引き継ぐ（CSS Selectors Level 3/4）。:not() 自体は b++ しない
-  s = s.replace(/:not\(\s*([^)]*?)\s*\)/gi, (_, inner) => {
-    inner.replace(/#[\w-]+/g, () => { a++; return '' })
-    inner.replace(/\.[\w-]+|\[[^\]]*\]/g, () => { b++; return '' })
+  // ネストした括弧 (:not(:nth-child(2n)) 等) に対応するため (?:[^()]*|\([^)]*\))* を使う
+  // 置換をチェインして二重カウントを防ぐ（擬似クラスを先に消し残った要素名を最後にカウント）
+  s = s.replace(/:not\(\s*((?:[^()]*|\([^)]*\))*)\s*\)/gi, (_, inner) => {
+    let i = inner
+    i = i.replace(/#[\w-]+/g, () => { a++; return '' })
+    i = i.replace(/:[^:\s>+~([\].#]+(?:\([^)]*\))?/g, () => { b++; return '' })
+    i = i.replace(/\.[\w-]+/g, () => { b++; return '' })
+    c += i.split(/\s+/).filter(t => t && t !== '*' && /^[a-zA-Z][\w-]*/.test(t)).length
     return ''
   })
 
